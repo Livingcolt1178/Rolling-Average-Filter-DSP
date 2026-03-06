@@ -9,8 +9,8 @@
     The input data will be 8 bits and the output data will be 12 bits.
     */
 module DSP (
-    input logic clk_i,              //Clock signal
-    input logic rst_i,              //reset signal
+    input logic clk,
+    input logic rst_n,
 
     input logic [7:0] DSP_Din,      //The Data coming in from the ADC
 

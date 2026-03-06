@@ -16,24 +16,24 @@ module ADC(
     input logic [7:0] ADC_Din,      //Data coming in from the waveform generator
     input logic ADC_en_n,           //Enable signal for the ADC, Active low
 
-    output logic adc_clk,           //Clock signal for the ADC
+    output logic ADC_clk,           //Clock signal for the ADC
     output logic [7:0] ADC_Dout     //The Data leaving the ADC to the FPGA for DSP
     
     );
 
     // --------------------------------------------------------
     // Clock Divider 
-    // divides the clock by 12 as the Dac needs 12 cycles for every 1 cycle of the ADC.
+    // divides the clock by 9 for every half period as the Dac needs 18 cycles for every 1 cycle of the ADC.
     // --------------------------------------------------------
 
     logic [3:0]counter;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            adc_clk <= 0;
+            ADC_clk <= 0;
             counter <= 0;
         end else begin
-            if(counter == 11) begin
-                adc_clk <= ~adc_clk;
+            if(counter == 8) begin
+                ADC_clk <= ~ADC_clk;
                 counter <= 0;
             end else begin
                 counter <= counter + 1;
@@ -48,7 +48,7 @@ module ADC(
     logic [2:0] waddr;              //write address for the buffer register
     logic buf_full;                 //flag to indicate when the buffer is full for the first time
 
-    always_ff @(posedge adc_clk or negedge rst_n) begin
+    always_ff @(posedge ADC_clk or negedge rst_n) begin
         if (!rst_n) begin
             ADC_Dout <= 8'h00;
             waddr    <= 3'd0;
