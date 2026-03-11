@@ -4,7 +4,7 @@
     * Project: Rolling Average Filter DSP
     * Author: Nicholas Bramhall
     * date of Release : 4/15/2026
-    * Description: This module is the controller for the ADC1173, it will take in the data from the waveform generator and output it to the FPGA for DSP. 
+    * Description: This module is the controller for the ADC1173, it will take in the data from the waveform generator and output it to the FPGA for filtering. 
     It will also handle the enable signal for the ADC and the reset signal for the ADC. The enable and reset are active low.
     The data coming in from the waveform generator will be 8 bits and the data going out to the FPGA will also be 8 bits.
 */
@@ -14,72 +14,89 @@ module ADC(
     input logic rst_n,        
 
     input logic [7:0] ADC_Din,      //Data coming in from the waveform generator
-    input logic ADC_en_n,           //Enable signal for the ADC, Active low
+    input logic ADC_en_n,           //Enable signal for the ADC, Active low, allows sampling
+    input logic rd_en,              //read enable signal, allows the filter to read the samples.
 
     output logic ADC_clk,           //Clock signal for the ADC
-    output logic [7:0] ADC_Dout     //The Data leaving the ADC to the FPGA for DSP
-    
+    output logic [7:0] ADC_Dout,    //The Data leaving the ADC to the FPGA for filter
+    output logic fifo_empty,        //lets the filter know if we have data
+    output logic fifo_full          //lets the filter know if we need to turn off the ADC
     );
 
     // --------------------------------------------------------
-    // Clock Divider 
-    // divides the clock by 9 for every half period as the Dac needs 18 cycles for every 1 cycle of the ADC.
+    // Sample strobe
+    // flags for sampling every 16 cycles
     // --------------------------------------------------------
 
-    logic [3:0]counter;
+    logic [3:0]strob_counter;
+    logic sample_strobe;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            ADC_clk <= 0;
-            counter <= 0;
+            strob_counter <= 0;
         end else begin
-            if(counter == 8) begin
-                ADC_clk <= ~ADC_clk;
-                counter <= 0;
+            if(strob_counter == 15) begin
+                strob_counter <= 0;
             end else begin
-                counter <= counter + 1;
+                strob_counter <= strob_counter + 1;
             end
         end
     end
+    assign sample_strobe = (strob_counter == 4'd15);
+
+    assign ADC_clk = clk;
 
     // --------------------------------------------------------
-    // Data Handling
+    // Data Handling FIFO structure
     // --------------------------------------------------------
-    logic [7:0] buffer_reg [0:7];   //register to hold the last 8 samples for the rolling average filter
-    logic [2:0] waddr;              //write address for the buffer register
-    logic buf_full;                 //flag to indicate when the buffer is full for the first time
+    logic [7:0] fifo [0:7];        //FIFO structure to hold the samples coming in from the ADC, it can hold up to 8 samples.
+    logic [2:0] waddr;             //write address for the FIFO
+    logic [2:0] raddr;             //read address for the FIFO
+    logic [3:0] count;             //counter to keep track of how many samples are in the FIFO, 
+    logic fifo_full;
+    logic fifo_empty;
 
-    always_ff @(posedge ADC_clk or negedge rst_n) begin
-        if (!rst_n) begin
+    assign fifo_full = (count == 4'd8);
+    assign fifo_empty = (count == 4'd0);
+
+
+
+    always_ff @(posedge clk or negedge rst_n) begin : FIFO_Writing
+        if(!rst_n) begin
+            waddr <= 0;
+            for (int i = 0; i < 8; i++)begin
+                fifo[i] <= 8'h00;
+            end
+        end else begin
+            if(sample_strobe && !fifo_full && !ADC_en_n) begin
+                fifo[waddr] <= ADC_Din; //write the incoming data from the ADC to the FIFO at the current write address
+                waddr <= waddr + 1; 
+            end
+        end
+    end : FIFO_Writing
+
+    always_ff @(posedge clk or negedge rst_n) begin : FIFO_Reading
+        if(!rst_n) begin
+            raddr <= 0;
             ADC_Dout <= 8'h00;
-            waddr    <= 3'd0;
-            buf_full <= 1'b0;
-            for (int i = 0; i < 8; i++) begin
-                buffer_reg[i] <= 8'h00;
+        end else begin 
+            if(rd_en && !fifo_empty) begin
+                ADC_Dout <= fifo[raddr];
+                raddr <= raddr + 1; 
             end
-        end else if (!ADC_en_n) begin
-
-            // Always write new sample into circular buffer
-            buffer_reg[waddr] <= ADC_Din;
-
-            // Increment and wrap write pointer
-            if (waddr == 3'd7) begin
-                waddr    <= 3'd0;
-                buf_full <= 1'b1;   // Buffer is full after first pass
-            end else begin
-                waddr <= waddr + 1;
-            end
-
-            // Only output once buffer has been filled once
-            if (buf_full) begin
-                // Output oldest sample (one ahead of write pointer)
-                ADC_Dout <= buffer_reg[waddr];
-            end else begin
-                ADC_Dout <= 8'h00;
-            end
-
-        end else begin
-            ADC_Dout <= 8'h00;  // ADC disabled — drive output to 0
         end
-    end
+    end : FIFO_Reading
+
+    always_ff @( posedge clk or negedge rst_n ) begin : FIFO_Counter
+        if(!rst_n) begin
+            count <= 0;
+        end else begin
+            case({(rd_en && !fifo_empty),(sample_strobe && !fifo_full && !ADC_en_n)})
+                2'b01:   count <= count + 1;    //if write only, count adds one
+                2'b10:   count <= count - 1;    //if read only, count subtracts one
+                2'b11:   count <= count;        //if read and write at same time, count stays same
+                default: count <= count;
+            endcase
+        end
+    end : FIFO_Counter
 
 endmodule
