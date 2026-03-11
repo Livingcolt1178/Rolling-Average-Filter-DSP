@@ -1,3 +1,11 @@
+/*
+    * File: Top_lvl.sv
+    * Project: Rolling Average Filter DSP
+    * author: Nicholas Bramhall
+    * date of Release : 4/15/2026
+    * Description: This is the top level module for the rolling average filter DSP, it will instantiate the ADC controller, the DSP, and the DAC controller.
+
+*/
 module top_lvl (
     input logic clk,
     input logic rst,
