@@ -1,0 +1,4 @@
+Running: xsim.dir/ADC1173_tb_behav/xsimk.exe -simmode gui -wdb ADC1173_tb_behav.wdb -simrunnum 0 -socket 63132
+Design successfully loaded
+Design Loading Memory Usage: 10840 KB (Peak: 10840 KB)
+Design Loading CPU Usage: 0 ms

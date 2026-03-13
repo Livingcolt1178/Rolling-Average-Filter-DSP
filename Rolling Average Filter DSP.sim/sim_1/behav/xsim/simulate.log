@@ -1,0 +1,46 @@
+Time resolution is 1 ps
+Starting Test 1: Reset Functionality
+Test passed at time                45000 in test Reset Test - FIFO Empty: Expected 01, Got 01
+Test passed at time                45000 in test Reset Test - FIFO Full: Expected 00, Got 00
+Test passed at time                45000 in test Reset Test - ADC Enable: Expected 00, Got 00
+
+--- TEST 2: Single Write ---
+Test passed at time               195000 in test Single Write Test - FIFO Empty: Expected 00, Got 00
+Test passed at time               195000 in test Single Write Test - FIFO Full: Expected 00, Got 00
+Test passed at time               195000 in test Single Write Test - ADC Enable: Expected 00, Got 00
+
+--- TEST 3: Single Read ---
+Test passed at time               225000 in test Single Read Test - Data Read: Expected a5, Got a5
+Test passed at time               225000 in test Single Read Test - FIFO Empty: Expected 01, Got 01
+Test passed at time               225000 in test Single Read Test - FIFO Full: Expected 00, Got 00
+Test passed at time               225000 in test Single Read Test - ADC Enable: Expected 00, Got 00
+
+--- TEST 4: Read from Empty FIFO ---
+Test passed at time               255000 in test Read from Empty FIFO Test - Data Read: Expected 00, Got 00
+Test passed at time               255000 in test Read from Empty FIFO Test - FIFO Empty: Expected 01, Got 01
+Test passed at time               255000 in test Read from Empty FIFO Test - FIFO Full: Expected 00, Got 00
+Test passed at time               255000 in test Read from Empty FIFO Test - ADC Enable: Expected 00, Got 00
+
+--- TEST 5: Fill FIFO ---
+Test passed at time              1475000 in test Fill FIFO Test - FIFO Full: Expected 01, Got 01
+Test passed at time              1475000 in test Fill FIFO Test - ADC Enable: Expected 01, Got 01
+
+--- TEST 6: Verify contents unchanged after overflow ---
+Test passed at time              1635000 in test Write to Full FIFO Test - FIFO Full: Expected 01, Got 01
+Test passed at time              1635000 in test Write to Full FIFO Test - ADC Enable: Expected 01, Got 01
+
+--- TEST 7: Read all from Full FIFO (checks order too) ---
+Test passed at time              1665000 in test Read from Full FIFO Test - Data Read 0: Expected 00, Got 00
+Test passed at time              1685000 in test Read from Full FIFO Test - Data Read 1: Expected 01, Got 01
+Test passed at time              1705000 in test Read from Full FIFO Test - Data Read 2: Expected 02, Got 02
+Test passed at time              1725000 in test Read from Full FIFO Test - Data Read 3: Expected 03, Got 03
+Test passed at time              1745000 in test Read from Full FIFO Test - Data Read 4: Expected 04, Got 04
+Test passed at time              1765000 in test Read from Full FIFO Test - Data Read 5: Expected 05, Got 05
+Test passed at time              1785000 in test Read from Full FIFO Test - Data Read 6: Expected 06, Got 06
+Test passed at time              1805000 in test Read from Full FIFO Test - Data Read 7: Expected 07, Got 07
+Test passed at time              1805000 in test Read from Full FIFO Test - FIFO Empty: Expected 01, Got 01
+Test passed at time              1805000 in test Read from Full FIFO Test - FIFO Full: Expected 00, Got 00
+Test passed at time              1805000 in test Read from Full FIFO Test - ADC Enable: Expected 00, Got 00
+
+--- All tests completed ---
+$finish called at time : 1815 ns : File "C:/Users/nrbra/Rolling Average Filter DSP/Rolling Average Filter DSP.srcs/sim_1/new/ADC1173_tb.sv" Line 210

@@ -1,0 +1,7 @@
+0.7
+2020.2
+Nov 14 2025
+19:37:27
+C:/Users/nrbra/Rolling Average Filter DSP/Rolling Average Filter DSP.sim/sim_1/behav/xsim/glbl.v,1756381829,verilog,,,,glbl,,uvm,,,,,,
+C:/Users/nrbra/Rolling Average Filter DSP/Rolling Average Filter DSP.srcs/sim_1/new/ADC1173_tb.sv,1773411429,systemVerilog,,,,ADC1173_tb,,uvm,../../../../../../../AMDDesignTools/2025.2/Vivado/data/rsb/busdef,,,,,
+C:/Users/nrbra/Rolling Average Filter DSP/Rolling Average Filter DSP.srcs/sources_1/new/ADC1173_controller.sv,1773410781,systemVerilog,,C:/Users/nrbra/Rolling Average Filter DSP/Rolling Average Filter DSP.srcs/sim_1/new/ADC1173_tb.sv,,ADC,,uvm,../../../../../../../AMDDesignTools/2025.2/Vivado/data/rsb/busdef,,,,,
