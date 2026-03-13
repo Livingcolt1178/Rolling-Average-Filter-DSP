@@ -1,3 +1,17 @@
 Rolling Average Filter DSP.xpr
 Rolling Average Filter DSP.cache/wt/project.wpc
 Rolling Average Filter DSP.hw/Rolling Average Filter DSP.lpr
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.srcs/utils_1/
+*.xpr
+*.jou
+*.log
+*.str
+*.mif
+.Xil/
+*.bak
+*.wcfg

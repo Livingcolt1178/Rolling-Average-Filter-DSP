@@ -53,12 +53,14 @@ module ADC(
     logic [2:0] waddr;             //write address for the FIFO
     logic [2:0] raddr;             //read address for the FIFO
     logic [3:0] count;             //counter to keep track of how many samples are in the FIFO, 
-
-
+    logic allow_read;             //flag to allow reading from the FIFO, only allows reading if the FIFO is not empty and read enable is high
+    logic allow_write;            //flag to allow writing to the FIFO, only allows writing if
+    
     assign fifo_full = (count == 4'd8);
     assign fifo_empty = (count == 4'd0);
     assign ADC_en_n = fifo_full; //if the FIFO is full, we need to turn off the ADC to prevent overflow, otherwise we can keep it on.
-
+    assign allow_read = rd_en && !fifo_empty;
+    assign allow_write = sample_strobe && !fifo_full && sample_en;
 
     always_ff @(posedge clk or negedge rst_n) begin : FIFO_Writing
         if(!rst_n) begin
@@ -67,7 +69,7 @@ module ADC(
                 fifo[i] <= 8'h00;
             end
         end else begin
-            if(sample_strobe && !fifo_full && sample_en) begin
+            if(allow_write) begin
                 fifo[waddr] <= ADC_Din; //write the incoming data from the ADC to the FIFO at the current write address
                 waddr <= waddr + 1; 
             end
@@ -79,7 +81,7 @@ module ADC(
             raddr <= 0;
             ADC_Dout <= 8'h00;
         end else begin 
-            if(rd_en && !fifo_empty) begin
+            if(allow_read) begin
                 ADC_Dout <= fifo[raddr];
                 raddr <= raddr + 1; 
             end else begin
@@ -92,7 +94,7 @@ module ADC(
         if(!rst_n) begin
             count <= 0;
         end else begin
-            case({(rd_en && !fifo_empty),(sample_strobe && !fifo_full && sample_en)}) //check if we are reading and not empty, and if we are writing and not full and ADC is enabled
+            case({(allow_read),(allow_write)}) //check if we are reading and not empty, and if we are writing and not full and ADC is enabled
                 2'b01:   count <= count + 1;    //if write only, count adds one
                 2'b10:   count <= count - 1;    //if read only, count subtracts one
                 2'b11:   count <= count;        //if read and write at same time, count stays same
