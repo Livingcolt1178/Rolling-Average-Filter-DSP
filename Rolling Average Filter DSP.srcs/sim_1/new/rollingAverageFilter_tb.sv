@@ -4,7 +4,9 @@
 // Module Name:  rollingAverageFilter_tb
 // Project Name: Rolling Average Filter DSP
 // Target:       rollingAverageFilter
-// Description:  Testbench for the rolling average filter. Tests functionality and timing.
+// Description:  Testbench for the 16-tap rolling average filter. Verifies reset
+//               behavior, steady-state average output, and correct 12-bit scaling
+//               of the 8-bit input via right-shift division.
 //////////////////////////////////////////////////////////////////////////////////
 
 module rollingAverageFilter_tb;
