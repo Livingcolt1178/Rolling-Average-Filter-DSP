@@ -36,9 +36,22 @@ module rollingAverageFilter (
     //========================================================
     // Rolling Average Calculation
     //========================================================
-    assign sum = samples[0] + samples[1] + samples[2] + samples[3];
+    always_comb begin
+        if(!rst_n) begin
+            sum = 0; 
+        end else begin
+        sum = samples[0] + samples[1] + samples[2] + samples[3];
+        end
+    end
     assign avg = sum >> 2; //divide the sum by 4 to get the average, this is done by shifting right by 2 bits.
-    assign filter_Dout = {4'b0, avg}; //Output the average as a 12-bit value
+    
+    always_ff @( posedge clk ) begin
+        if(!rst_n) begin
+            filter_Dout <= 0; //reset the average to 0 on reset
+        end else begin
+            filter_Dout <= avg << 4; 
+        end
+    end
 
     assign filter_ready = 1'b1; //Signal that the DSP is ready for more data
 
