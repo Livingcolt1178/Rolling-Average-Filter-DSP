@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
-/*
-    * File: ADC1173_controller.sv
-    * Project: Rolling Average Filter DSP
-    * Author: Nicholas Bramhall
-    * date of Release : 4/15/2026
-    * Description: This module is the controller for the ADC1173, it will take in the data from the waveform generator and output it to the FPGA for filtering. 
-    It will also handle the enable signal for the ADC and the reset signal for the ADC. The enable and reset are active low.
-    The data coming in from the waveform generator will be 8 bits and the data going out to the FPGA will also be 8 bits.
-*/
+//////////////////////////////////////////////////////////////////////////////////
+// Engineer:     Nicholas Bramhall
+// Module Name:  ADC1173_Controller
+// Project Name: Rolling Average Filter DSP
+// Target:       ADC1173
+// Description:  Controller for the ADC1173 parallel ADC. Captures 8-bit samples
+//               on the rising edge when enabled. Enable and reset are active-low.
+//               Outputs a valid strobe alongside each captured sample.
+//////////////////////////////////////////////////////////////////////////////////
 
 module ADC(
     input logic clk,             
