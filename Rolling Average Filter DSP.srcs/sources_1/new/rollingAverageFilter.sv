@@ -43,7 +43,7 @@ module rollingAverageFilter (
         if(!rst_n) begin
             sum = 0; 
         end else begin
-        sum = samples[0] + samples[1] + samples[2] + samples[3];
+            sum = samples[0] + samples[1] + samples[2] + samples[3];
         end
     end
     assign avg = sum >> 2; //divide the sum by 4 to get the average, this is done by shifting right by 2 bits.
