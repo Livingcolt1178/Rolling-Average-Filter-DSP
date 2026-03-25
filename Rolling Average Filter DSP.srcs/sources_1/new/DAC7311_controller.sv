@@ -42,7 +42,7 @@ module DAC7311_Controller (
                 bit_cnt <= 1;                       //Reset bit counter
             end else if (!DAC_ready) begin          //If not ready, we are in the process of sending data out
                 DAC_dout <= data_reg[14];           
-                data_reg <= {data_reg[13:0], 1'b0}; //Shift the data left for the next bit
+                data_reg <= data_reg << 1; //Shift the data left for the next bit
                 bit_cnt <= bit_cnt + 1;             //Increment bit counter
                 if (bit_cnt == 4'd15) begin            //Once all bits have been sent, we are done
                     DAC_ready <= 1;                 //Ready for new data
