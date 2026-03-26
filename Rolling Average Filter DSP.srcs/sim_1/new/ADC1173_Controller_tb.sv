@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer:     Nicholas Bramhall
-// Module Name:  ADC1173_tb
+// Module Name:  ADC1173_Controller_tb
 // Project Name: Rolling Average Filter DSP
 // Target:       ADC1173
 // Description:  Testbench for the ADC1173 controller. Tests FIFO write, read,
@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ADC1173_tb;
+module ADC1173_Controller_tb;
 
 //Signals
     logic clk;
@@ -28,7 +28,7 @@ module ADC1173_tb;
     int i; //integer for loop iteration
     
     // Instantiate the ADC1173 controller
-    ADC dut (
+    ADC1173_Controller dut (
         .clk(clk),
         .rst_n(rst_n),
         .ADC_Din(ADC_Din),
