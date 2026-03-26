@@ -14,16 +14,16 @@ module DAC7311_Controller (
     input logic rst_n,
 
     input logic [11:0] DAC_Din,     //The data coming in that has been processed
-    input logic data_valid,          //signal to let the DAC know that the data coming in is valid and can be latched for sending out.
+    input logic data_valid,         //signal to let the DAC know that the data coming in is valid and can be latched for sending out.
     
     output logic DAC_sync_n,        //works as an enable signal in that when low, dac is busy, when high, idling.
     output logic DAC_dout,          //Data out from the DAC
     output logic DAC_clk,           //Clock signal for the DAC
-    output logic DAC_ready          //probe to let the filter know that the DAC is done sending out data and is now ready for more data.
     );
 
-    logic [14:0] data_reg; //register to hold the data being sent out to the DAC
+    logic [14:0] data_reg;  //register to hold the data being sent out to the DAC
     logic [3:0] bit_cnt;
+    logic DAC_ready;        //flag to indicate the DAC is ready for new data, only allows new data to be latched when the previous data has finished sending out.
     assign DAC_clk = clk;
     
     always_ff @(posedge clk) begin
