@@ -9,7 +9,7 @@
 //               Outputs a valid strobe alongside each captured sample.
 //////////////////////////////////////////////////////////////////////////////////
 
-module ADC(
+module ADC1173_Controller(
     input logic clk,             
     input logic rst_n,        
 
