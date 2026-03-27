@@ -18,7 +18,7 @@ module DAC7311_Controller (
     
     output logic DAC_sync_n,        //works as an enable signal in that when low, dac is busy, when high, idling.
     output logic DAC_dout,          //Data out from the DAC
-    output logic DAC_clk,           //Clock signal for the DAC
+    output logic DAC_clk           //Clock signal for the DAC
     );
 
     logic [14:0] data_reg;  //register to hold the data being sent out to the DAC

@@ -12,11 +12,11 @@ module top_lvl (
     input logic rst_n,
     
     input logic [7:0] ADC_Din,  //Data coming in from the waveform generator
-    output logic ADC_clk        //Clock signal for the ADC, used for debugging to make sure the clock is running and connected properly.
-    output logic ADC_en_n       //Enable signal for the ADC, Active low, allows sampling, used for debugging to make sure we are enabling the ADC properly.
+    output logic ADC_clk,        //Clock signal for the ADC, used for debugging to make sure the clock is running and connected properly.
+    output logic ADC_en_n,       //Enable signal for the ADC, Active low, allows sampling, used for debugging to make sure we are enabling the ADC properly.
     
-    output logic DAC_Dout       //Data coming out of the DAC to the oscilloscope
-    output logic DAC_sync_n     //works as an enable signal in that when low, dac is busy, when high, idling.
+    output logic DAC_Dout,       //Data coming out of the DAC to the oscilloscope
+    output logic DAC_sync_n,    //works as an enable signal in that when low, dac is busy, when high, idling.
     output logic DAC_clk        //Clock signal for the DAC, used for debugging to make sure the clock is running and connected properly.
  
 );
@@ -27,8 +27,9 @@ module top_lvl (
     logic [7:0] ADC_Dout;       //Data coming out of the ADC to the filter
 
     logic [11:0] filter_Dout;   //Data coming out of the filter to the DAC
-    logic data_valid;           //signal to let the DAC know that the data coming in is
+    logic data_valid;           //signal to let the DAC know that the data coming in is valid
 
+    assign sample_en = 1; //always enable sampling for now, we can use this to control sampling when testing.
     //instantiate ADC controller
     ADC_controller adc_ctrl (
         .clk(clk),
@@ -64,7 +65,7 @@ module top_lvl (
         .data_valid(data_valid),
 
         .DAC_sync_n(DAC_sync_n),
-        .DAC_dout(DAC_dout),
+        .DAC_dout(DAC_Dout),
         .DAC_clk(DAC_clk),
     );
 
