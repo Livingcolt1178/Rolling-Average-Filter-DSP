@@ -84,8 +84,6 @@ module ADC1173_Controller(
             if(allow_read) begin
                 ADC_Dout <= fifo[raddr];
                 raddr <= raddr + 1; 
-            end else begin
-            ADC_Dout <= 8'h00;  // FIX: don't hold stale value
             end
         end
     end : FIFO_Reading

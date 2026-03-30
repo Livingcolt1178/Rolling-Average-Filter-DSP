@@ -3,14 +3,14 @@ module Top_lvl_tb;
     logic clk;
     logic rst_n;
     logic [7:0] ADC_Din;
-    
-    // output signals
+
+
+
     logic ADC_clk;
     logic ADC_en_n;
-    logic [7:0] ADC_Dout;
 
     logic DAC_sync_n;
-    logic DAC_dout;
+    logic DAC_Dout;
     logic DAC_clk;
 
     //instantiation
@@ -55,66 +55,124 @@ module Top_lvl_tb;
         logic [9:0] sum;
         logic [7:0] avg;
         sum = val + val + val + val;
-        avg = sum  >> 2; 
-        return avg << 4;
+        avg = sum >> 2;
+        return {avg, 4'b0};
     endfunction
 
+    property ADC_Write_Check;
+        @(posedge clk) disable iff (!rst_n)
+        (ADC_en_n == 0 && dut.adc_ctrl.allow_write)
+        |-> (dut.adc_ctrl.fifo[$past(dut.adc_ctrl.waddr)] == (ADC_Din));
+    endproperty
+
+    property ADC_Read_Check;
+        @(posedge clk) disable iff (!rst_n)
+        (dut.adc_ctrl.allow_read)
+        |-> (dut.adc_ctrl.ADC_Dout == $past(dut.adc_ctrl.fifo[dut.adc_ctrl.raddr]));
+    endproperty
+
+    property filter_calculation_check;
+        @(posedge clk) disable iff (!rst_n)
+        (dut.adc_ctrl.allow_read) |-> (dut.filter.filter_Dout == ((dut.filter.samples[0] + dut.filter.samples[1] + dut.filter.samples[2] + dut.filter.samples[3]) >> 2) << 4);
+    endproperty
+
+    property DAC_data_reg_check;
+        @(posedge clk) disable iff (!rst_n)
+        (dut.dac_ctrl.data_valid) |-> (dut.dac_ctrl.data_reg == {1'b0, dut.filter.filter_Dout, 2'b11});
+    endproperty
+
+    property DAC_sync_check;
+        @(posedge clk) disable iff (!rst_n)
+        (dut.dac_ctrl.data_valid && dut.dac_ctrl.DAC_ready)
+        |-> ##1 (DAC_sync_n == 0);
+    endproperty
+
+    property DAC_start_bit_check;
+        @(posedge clk) disable iff (!rst_n)
+        (dut.dac_ctrl.data_valid && dut.dac_ctrl.DAC_ready)
+        |-> ##1 (DAC_Dout == 0);
+    endproperty
+
+    property DAC_shift_reg_check;
+        @(posedge clk) disable iff (!rst_n)
+        (!dut.dac_ctrl.DAC_ready)
+        |-> (dut.dac_ctrl.data_reg == $past(dut.dac_ctrl.data_reg) << 1);
+    endproperty
+
+    assert property (ADC_Write_Check)
+        else $error("[%t] ADC Write to FIFO failed!", $time);
+
+    assert property (ADC_Read_Check)
+        else $error("[%t] ADC Read from FIFO failed!", $time);
+
+    assert property (filter_calculation_check)
+        else $error("[%t] Filter calculation is incorrect!", $time); //passes 100%
+
+    assert property (DAC_data_reg_check)
+        else $error("[%t] DAC data register is incorrect!", $time);
+
+    assert property (DAC_sync_check)
+        else $error("[%t] DAC SYNC signal is not correct!", $time); //so this is sayings its wrong but according to waveform and code its looks right, not sure what to do here.
+
+    assert property (DAC_start_bit_check)
+        else $error("[%t] DAC start bit is incorrect!", $time);    //same as sync check
+
+    assert property (DAC_shift_reg_check)
+        else $error("[%t] DAC shift register behavior is incorrect!", $time);
+
     logic [11:0] result;
-    logic [7:0] tb_samples [0:3];
-    logic [7:0] sine_lut [0:63];
-
     initial begin
-        for (int i = 0; i < 64; i++) begin
-            sine_lut[i] = 8'(128 + integer'(127.0 * $sin(2.0 * 3.14159265 * i / 64)));
-        end
-    end
 
-    initial begin
         rst_n = 0;
         ADC_Din = 8'h00;
         #10;
-        rst_n = 1;
-        @(posedge clk);
-
         //=========================================================
         // Test 1: Reset Functionality
         //=========================================================
-        check_output("Test 1 - Reset Check", ADC_en_n, 1);
-        check_output("Test 1 - Reset Check", ADC_Dout, 8'h00);
+        check_output("Test 1 - Reset Check", ADC_en_n, 0);
         check_output("Test 1 - Reset Check", DAC_sync_n, 1);
-        check_output("Test 1 - Reset Check", DAC_dout, 0);
-        check_output("Test 1 - Reset Check", DAC_clk, 0);
-
+        @(posedge clk);
+        rst_n = 1;
+        @(posedge clk);
+        assert (DAC_clk == clk) else $error("DAC clock is not connected to the system clock!");
+        $display("Fifo_Full: %b", dut.adc_ctrl.fifo_full);
         //=========================================================
         // Test 2: constant 0xFF
         //=========================================================
         ADC_Din = 8'hFF;
-        repeat(20) @(posedge clk);
-        capture_dac_frame(result);
-        check("Test 2: constant 0xFF", result, expected_dout(8'hFF));
+        repeat(80) @(posedge clk);
+        @(posedge DAC_sync_n);
+        DAC_output_check(result);
+        check_output("Test 2: constant 0xFF", result, expected_dout(8'hFF));
 
+        //=========================================================
+        // Test 3: constant 0x00
+        //=========================================================
+        ADC_Din = 8'h00;
+        repeat(80) @(posedge clk);
+        DAC_output_check(result);
+        check_output("Test 3: constant 0x00", result, expected_dout(8'h00));
 
-        //========================================================
-        // Test 3: sinualsodal Testing
-        //=======================================================
-        // Shift register mirroring the filter's internal state
-
-            // Feed one full sine cycle
-            for (int i = 0; i < 64; i++) begin
-                ADC_Din = sine_lut[i];
-                
-                // Update TB-side shift register (mirrors RTL)
-                tb_samples[3] = tb_samples[2];
-                tb_samples[2] = tb_samples[1];
-                tb_samples[1] = tb_samples[0];
-                tb_samples[0] = sine_lut[i];
-                
-                // Wait for strobe (every 16 cycles)
-                repeat(16) @(posedge clk);
-
-                // Capture and check DAC output
-                capture_dac_frame(result);
-                check($sformatf("Sine sample %0d", i), result, compute_expected(tb_samples));
-            end
+        //=========================================================
+        // Test 4: Assertion Based Testing
+        //=========================================================
+        ADC_Din = 8'h0F;
+        @(posedge clk);
+        ADC_Din = 8'hF0;
+        @(posedge clk);
+        ADC_Din = 8'hAA;
+        @(posedge clk);
+        ADC_Din = 8'h55;
+        @(posedge clk);
+        ADC_Din = 8'h33;
+        @(posedge clk);
+        ADC_Din = 8'hCC;
+        @(posedge clk);
+        ADC_Din = 8'h78;
+        @(posedge clk);
+        ADC_Din = 8'h87;
+        repeat(80) @(posedge clk);    
+       
+            $finish;
         end
 endmodule

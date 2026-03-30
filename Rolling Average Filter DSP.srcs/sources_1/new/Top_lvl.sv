@@ -31,7 +31,7 @@ module top_lvl (
 
     assign sample_en = 1; //always enable sampling for now, we can use this to control sampling when testing.
     //instantiate ADC controller
-    ADC_controller adc_ctrl (
+    ADC1173_Controller adc_ctrl (
         .clk(clk),
         .rst_n(rst_n),
 
@@ -41,7 +41,7 @@ module top_lvl (
 
         .ADC_en_n(ADC_en_n),
         .ADC_clk(ADC_clk),
-        .ADC_Dout(ADC_Dout),
+        .ADC_Dout(ADC_Dout)
     );
 
     //instantiate Filter
@@ -57,7 +57,7 @@ module top_lvl (
     );
 
     //instantiate DAC controller
-    DAC_controller dac_ctrl (
+    DAC7311_Controller dac_ctrl (
         .clk(clk),
         .rst_n(rst_n),
 
@@ -65,8 +65,8 @@ module top_lvl (
         .data_valid(data_valid),
 
         .DAC_sync_n(DAC_sync_n),
-        .DAC_dout(DAC_Dout),
-        .DAC_clk(DAC_clk),
+        .DAC_Dout(DAC_Dout),
+        .DAC_clk(DAC_clk)
     );
 
 endmodule
