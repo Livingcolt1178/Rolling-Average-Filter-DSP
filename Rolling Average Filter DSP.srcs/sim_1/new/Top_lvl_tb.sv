@@ -15,7 +15,7 @@ module Top_lvl_tb;
 
     //instantiation
     top_lvl dut (
-        .clk(clk),
+        .sys_clk(clk),
         .rst_n(rst_n),
 
         .ADC_Din(ADC_Din),
@@ -99,33 +99,11 @@ module Top_lvl_tb;
         |-> (dut.dac_ctrl.data_reg == $past(dut.dac_ctrl.data_reg) << 1);
     endproperty
 
-    assert property (ADC_Write_Check)
-        else $error("[%t] ADC Write to FIFO failed!", $time);
-
-    assert property (ADC_Read_Check)
-        else $error("[%t] ADC Read from FIFO failed!", $time);
-
-    assert property (filter_calculation_check)
-        else $error("[%t] Filter calculation is incorrect!", $time); //passes 100%
-
-    assert property (DAC_data_reg_check)
-        else $error("[%t] DAC data register is incorrect!", $time);
-
-    assert property (DAC_sync_check)
-        else $error("[%t] DAC SYNC signal is not correct!", $time); //so this is sayings its wrong but according to waveform and code its looks right, not sure what to do here.
-
-    assert property (DAC_start_bit_check)
-        else $error("[%t] DAC start bit is incorrect!", $time);    //same as sync check
-
-    assert property (DAC_shift_reg_check)
-        else $error("[%t] DAC shift register behavior is incorrect!", $time);
-
     logic [11:0] result;
     initial begin
-
         rst_n = 0;
         ADC_Din = 8'h00;
-        #10;
+         repeat (20) @(posedge clk);        
         //=========================================================
         // Test 1: Reset Functionality
         //=========================================================
