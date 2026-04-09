@@ -19,9 +19,7 @@ module ADC1173_Controller(
 
     output logic ADC_en_n,          //Enable signal for the ADC, Active low, allows sampling
     output logic ADC_clk,           //Clock signal for the ADC
-    output logic [7:0] ADC_Dout,    //The Data leaving the ADC to the FPGA for filter
-    output logic fifo_empty,        //lets the filter know if we have data
-    output logic fifo_full          //lets the filter know if we need to turn off the ADC
+    output logic [7:0] ADC_Dout    //The Data leaving the ADC to the FPGA for filter
     );
 
     // --------------------------------------------------------
@@ -49,10 +47,12 @@ module ADC1173_Controller(
     // --------------------------------------------------------
     // Data Handling FIFO structure
     // --------------------------------------------------------
-    logic [7:0] fifo [0:7];        //FIFO structure to hold the samples coming in from the ADC, it can hold up to 8 samples.
-    logic [2:0] waddr;             //write address for the FIFO
-    logic [2:0] raddr;             //read address for the FIFO
-    logic [3:0] count;             //counter to keep track of how many samples are in the FIFO, 
+    logic [7:0] fifo [0:7];       //FIFO structure to hold the samples coming in from the ADC, it can hold up to 8 samples.
+    logic [2:0] waddr;            //write address for the FIFO
+    logic [2:0] raddr;            //read address for the FIFO
+    logic [3:0] count;            //counter to keep track of how many samples are in the FIFO, 
+    logic fifo_full;              //flag to indicate the FIFO is full, used to prevent writing when full
+    logic fifo_empty;             //flag to indicate the FIFO is empty, used to prevent reading when empty
     logic allow_read;             //flag to allow reading from the FIFO, only allows reading if the FIFO is not empty and read enable is high
     logic allow_write;            //flag to allow writing to the FIFO, only allows writing if
     
@@ -84,8 +84,6 @@ module ADC1173_Controller(
             if(allow_read) begin
                 ADC_Dout <= fifo[raddr];
                 raddr <= raddr + 1; 
-            end else begin
-            ADC_Dout <= 8'h00;  // FIX: don't hold stale value
             end
         end
     end : FIFO_Reading

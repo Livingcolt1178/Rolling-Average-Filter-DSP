@@ -4,9 +4,9 @@
 // Module Name:  rollingAverageFilter
 // Project Name: Rolling Average Filter DSP
 // Target:       Spartan-7
-// Description:  16-tap rolling average filter. Maintains a running sum over a
-//               shift register of 16 8-bit samples. Output is the 12-bit sum
-//               right-shifted by 4 (divide by 16). O(1) per cycle: one add,
+// Description:  4-tap rolling average filter. Maintains a running sum over a
+//               shift register of 4 8-bit samples. Output is the 12-bit sum
+//               right-shifted by 2 (divide by 4). O(1) per cycle: one add,
 //               one subtract.
 //////////////////////////////////////////////////////////////////////////////////
 module rollingAverageFilter (
@@ -16,8 +16,8 @@ module rollingAverageFilter (
     input logic [7:0] filter_Din,      //The Data coming in from the ADC
 
     output logic [11:0] filter_Dout,   //The Data leaving to the DAC
-    output logic filter_ready          //Signal to let the ADC know its ready for more data.
-    output logic data_valid            //Signal to let the DAC know that the data coming out is valid and can be latched for sending out.
+    output logic filter_ready,          //Signal to let the ADC know its ready for more data.
+    output logic data_valid             //Signal to let the DAC know that the data coming out is valid and can be latched for sending out.
     );
 
     logic [7:0] samples [3:0];
