@@ -4,9 +4,9 @@
 // Module Name:  rollingAverageFilter
 // Project Name: Rolling Average Filter DSP
 // Target:       Spartan-7
-// Description:  4-tap rolling average filter. Maintains a running sum over a
-//               shift register of 4 8-bit samples. Output is the 12-bit sum
-//               right-shifted by 2 (divide by 4). O(1) per cycle: one add,
+// Description:  N-tap rolling average filter. Maintains a running sum over a
+//               shift register of N 8-bit samples. Output is the 12-bit sum
+//               right-shifted by log2(N) (divide by N). O(1) per cycle: one add,
 //               one subtract.
 //////////////////////////////////////////////////////////////////////////////////
 module rollingAverageFilter (
@@ -19,23 +19,29 @@ module rollingAverageFilter (
     output logic filter_ready,          //Signal to let the ADC know its ready for more data.
     output logic data_valid             //Signal to let the DAC know that the data coming out is valid and can be latched for sending out.
     );
+                          
+    localparam N        = 64;           //number of taps, used for shifting to calculate average
+    localparam LOG2_N   = $clog2(N);    //Don't change this, it is used to calculate the number of bits needed for the sum to prevent overflow, and for shifting to calculate the average.
+    localparam SUM_BITS = 8 + LOG2_N;   //Dont' change this, it is used to calculate the number of bits needed for the sum to prevent overflow, and for shifting to calculate the average.
 
-    logic [7:0] samples [3:0];
-    logic [9:0] sum;
+    logic [7:0] samples [N-1:0];                
+    logic [SUM_BITS-1:0] sum;           //to increase taps past 64 taps, increase bit width to prevent overflow.
     logic [7:0] avg;
 
     always_ff @(posedge clk) begin
         if(!rst_n) begin
-            for(int i = 0; i < 4; i++) begin
-                samples[i] <= 8'b0; //reset the samples to 0 on reset
+            for(int i = 0; i < N; i++) begin   //to increase taps, increase the loop count for reset
+                samples[i] <= 8'b0;            //reset the samples to 0 on reset
             end
+
         end else begin
-            samples[3] <= samples[2]; //shift in the new data, the oldest data will be overwritten.
-            samples[2] <= samples[1]; //shift in the new data, the oldest data will be overwritten.
-            samples[1] <= samples[0]; //shift in the new data, the oldest data will be overwritten.
-            samples[0] <= filter_Din; //shift in the new data, the oldest data will be overwritten.
+            for(int i = N-1; i > 0; i--) begin
+                samples[i] <= samples[i-1];
+            end
+            samples[0] <= filter_Din;           //shift in the new data, the oldest data will be overwritten.
         end
     end
+
     //========================================================
     // Rolling Average Calculation
     //========================================================
@@ -43,10 +49,13 @@ module rollingAverageFilter (
         if(!rst_n) begin
             sum = 0; 
         end else begin
-            sum = samples[0] + samples[1] + samples[2] + samples[3];
+            sum = '0;
+            for(int i = 0; i < N; i++) begin
+                sum += samples[i];
+            end
         end
     end
-    assign avg = sum >> 2; //divide the sum by 4 to get the average, this is done by shifting right by 2 bits.
+    assign avg = sum >> LOG2_N; //divide the sum by the log2 of the number of taps to get the average, I.E, right shift by 6 for 64 taps.
     
     always_ff @( posedge clk ) begin
         if(!rst_n) begin

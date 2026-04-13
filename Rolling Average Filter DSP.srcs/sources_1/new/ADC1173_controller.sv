@@ -19,7 +19,7 @@ module ADC1173_Controller(
 
     output logic ADC_en_n,          //Enable signal for the ADC, Active low, allows sampling
     output logic ADC_clk,           //Clock signal for the ADC
-    output logic [7:0] ADC_Dout    //The Data leaving the ADC to the FPGA for filter
+    output logic [7:0] ADC_Dout     //The Data leaving the ADC to the FPGA for filter
     );
 
     // --------------------------------------------------------
