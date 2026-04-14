@@ -25,9 +25,9 @@ module Top_lvl_tb;
     //================================================================
     // Parameters — match these to the DUT
     //================================================================
-    localparam N        = 64;
-    localparam LOG2_N   = $clog2(N);
-    localparam CLK_HALF = 5; // 100MHz = 10ns period
+    localparam N        = 64;       //change this for number of taps in your filter, must be a power of 2 for the expected output calculation to work correctly
+    localparam LOG2_N   = $clog2(N);//dont touch this, it calculates the log2 of N for you
+    localparam CLK_HALF = 5;        // 100MHz = 10ns period
 
     //================================================================
     // Signals
@@ -68,10 +68,10 @@ module Top_lvl_tb;
     // Apply and release reset cleanly
     task apply_reset();
         rst_n = 0;
-        repeat(20) @(posedge clk);
-        @(negedge clk); // release on negedge for clean setup time
+        repeat(20) @(posedge dut.clk);
+        @(negedge dut.clk); // release on negedge for clean setup time
         rst_n = 1;
-        repeat(5) @(posedge clk);
+        repeat(5) @(posedge dut.clk);
     endtask
 
     // Check output value with pass/fail message
@@ -93,11 +93,11 @@ module Top_lvl_tb;
         @(negedge DAC_sync_n);
         #1; // settle — first bit already driven combinatorially
         for (int i = 0; i < 16; i++) begin
-            @(posedge clk);
+            @(posedge dut.clk);
             #1; // settle after clock edge
             frame[15 - i] = DAC_Dout;
         end
-        DAC_output = frame[13:2]; // bits [13:2] = 12-bit data field
+        DAC_output = frame[14:3]; // bits [14:3] = 12-bit data field
     endtask
 
     // Expected DAC output for a constant ADC input
@@ -114,28 +114,29 @@ module Top_lvl_tb;
     // Assertions
     //================================================================
 
-    // ADC FIFO write captures correct data
     property ADC_Write_Check;
+        logic [5:0] addr; 
         @(posedge dut.clk) disable iff (!dut.internal_rst_n)
-        (ADC_en_n == 0 && dut.adc_ctrl.allow_write)
-        |-> (dut.adc_ctrl.fifo[(dut.adc_ctrl.waddr)] == ADC_Din);
+        // Capture address and data, then check the FIFO in the NEXT cycle
+        (ADC_en_n == 0 && dut.adc_ctrl.allow_write, addr = dut.adc_ctrl.waddr)
+        |-> ##1 (dut.adc_ctrl.fifo[addr] == $past(ADC_Din));
     endproperty
 
     // ADC FIFO read outputs correct data
-    property ADC_Read_Check;
-        @(posedge dut.clk) disable iff (!dut.internal_rst_n)
-        (dut.adc_ctrl.allow_read)
-        |-> (dut.adc_ctrl.ADC_Dout ==
-            (dut.adc_ctrl.fifo[dut.adc_ctrl.raddr]));
-    endproperty
+property ADC_Read_Check;
+    logic [5:0] addr;
+    @(posedge dut.clk) disable iff (!dut.internal_rst_n)
+    // Capture the read address when allow_read is high
+    (dut.adc_ctrl.allow_read, addr = dut.adc_ctrl.raddr)
+    // Wait one cycle for the FIFO memory to output the data to ADC_Dout
+    |-> ##1 (dut.adc_ctrl.ADC_Dout == dut.adc_ctrl.fifo[addr]);
+endproperty
 
     // Filter output matches rolling average math using N taps
     property filter_calculation_check;
-        logic [14:0] expected_sum;
         @(posedge dut.clk) disable iff (!dut.internal_rst_n)
         (dut.adc_ctrl.allow_read)
-        |-> (dut.filter.filter_Dout ==
-             (dut.filter.sum >> LOG2_N) << 4);
+        |-> ##1 (dut.filter.filter_Dout == ($past(dut.filter.sum) >> LOG2_N) << 4);
     endproperty
 
     // DAC data register loaded correctly
@@ -161,12 +162,12 @@ module Top_lvl_tb;
     endproperty
 
     // Shift register advances every cycle while transmitting
-    property DAC_shift_reg_check;
-        @(posedge dut.clk) disable iff (!dut.internal_rst_n)
-        (!dut.dac_ctrl.DAC_ready)
-        |-> (dut.dac_ctrl.data_reg ==
-             $past(dut.dac_ctrl.data_reg) << 1);
-    endproperty
+property DAC_shift_reg_check;
+    @(posedge dut.clk) disable iff (!dut.internal_rst_n || dut.dac_ctrl.DAC_ready)
+    // Check that IF we were not ready last cycle AND we are still not ready
+    // THEN the register must have shifted
+    $past(!dut.dac_ctrl.DAC_ready) |-> (dut.dac_ctrl.data_reg == ($past(dut.dac_ctrl.data_reg) << 1));
+endproperty
 
     assert property (ADC_Write_Check)
         else $error("[%0t] ADC Write to FIFO failed!", $time);
@@ -178,10 +179,10 @@ module Top_lvl_tb;
         else $error("[%0t] Filter calculation incorrect!", $time);
 
     assert property (DAC_data_reg_check)
-        else $error("[%0t] DAC data register incorrect!", $time);
+        else $error("[%0t] DAC data register incorrect!", $time);   //working
 
     assert property (DAC_sync_check)
-        else $error("[%0t] DAC SYNC incorrect!", $time);
+        else $error("[%0t] DAC SYNC incorrect!", $time);            //working
 
     assert property (DAC_start_bit_check)
         else $error("[%0t] DAC start bit incorrect!", $time);       //working
@@ -205,7 +206,7 @@ module Top_lvl_tb;
         $display("\n--- Test 1: Reset Check ---");
         check_output("ADC_en_n after reset",  {15'b0, ADC_en_n},  16'h0000);
         check_output("DAC_sync_n after reset", {15'b0, DAC_sync_n}, 16'h0001);
-        assert (DAC_clk == clk)
+        assert (DAC_clk == dut.clk)
             else $error("DAC_clk not connected to system clock!");
         $display("FIFO count after reset: %0d", dut.adc_ctrl.count);
 
@@ -218,7 +219,7 @@ module Top_lvl_tb;
         apply_reset();
         ADC_Din = 8'hFF;
         // N taps × 16 cycles per sample + margin
-        repeat(N * 16 + 80) @(posedge clk);
+        repeat(N * 16 + 80) @(posedge dut.clk);
         DAC_output_check(result);
         check_output("Constant 0xFF", result, expected_dout(8'hFF));
 
@@ -229,7 +230,7 @@ module Top_lvl_tb;
         $display("\n--- Test 3: Constant 0x00 ---");
         apply_reset();
         ADC_Din = 8'h00;
-        repeat(N * 16 + 80) @(posedge clk);
+        repeat(N * 16 + 80) @(posedge dut.clk);
         DAC_output_check(result);
         check_output("Constant 0x00", result, expected_dout(8'h00));
 
@@ -240,7 +241,7 @@ module Top_lvl_tb;
         $display("\n--- Test 4: Midscale 0x80 ---");
         apply_reset();
         ADC_Din = 8'h80;
-        repeat(N * 16 + 80) @(posedge clk);
+        repeat(N * 16 + 80) @(posedge dut.clk);
         DAC_output_check(result);
         check_output("Midscale 0x80", result, expected_dout(8'h80));
 
@@ -265,11 +266,11 @@ module Top_lvl_tb;
 
             for (int i = 0; i < 8; i++) begin
                 ADC_Din = test_vals[i];
-                repeat(16) @(posedge clk);
+                repeat(16) @(posedge dut.clk);
             end
         end
 
-        repeat(N * 16 + 80) @(posedge clk);
+        repeat(N * 16 + 80) @(posedge dut.clk);
         $display("\n--- All tests complete ---");
         $finish;
     end
