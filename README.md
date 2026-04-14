@@ -163,6 +163,16 @@ The testbench uses **SystemVerilog Assertions (SVA)** to verify pipeline behavio
 3. Click **Run Simulation → Run Behavioral Simulation**
 4. Verify no assertion failures in the Tcl console
 
+This waveform illustrates the end-to-end data flow through the system, starting from ADC acquisition and ending at DAC output.
+
+The progression can be observed from bottom to top:
+
+-ADC input samples are captured and written into the FIFO buffer
+-Data is processed by the rolling average filter (DSP stage)
+-The filtered output is serialized and transmitted to the DAC
+
+This confirms correct functional integration across all three major subsystems.
+
 ![Waveform](images/Waveform.png)
 
 ---
