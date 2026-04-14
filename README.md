@@ -5,7 +5,7 @@
 ---
 
 
-![Hero Image](images\Overview.jpg)
+![Hero Image](images/Overview.jpg)
 
 ---
 
@@ -31,7 +31,7 @@ The pipeline captures analog samples via an onboard 8-bit ADC, processes them th
 
 ## Architecture
 
-![schematic](images\schematic.png)
+![schematic](images/schematic.png)
 
 ### Submodules
 
@@ -93,7 +93,7 @@ Dout = avg << 4            // scale 8-bit average to 12-bit DAC range
 │   │   └── Top_lvl_tb.sv            # Assertion-based testbench
 │   └── constrs_1/new/
 │       └── Constraints.xdc          # Pin assignments and timing constraints
-├── README.md
+└── README.md
 ```
 
 ---
@@ -160,16 +160,16 @@ The testbench uses **SystemVerilog Assertions (SVA)** to verify pipeline behavio
 
 **PLL lock-gated reset** — Synchronous reset flip-flops require a valid clock edge during reset. If `rst_n` deasserts before the PLL locks, registers stay in X state. Gating reset with `locked` (`internal_rst_n = rst_n & locked`) ensures the clock is stable before reset releases.
 
-**Manual understanding** - As simple as it sounds, a lot of time was wasted debugging when the reason was I was lifting DAC_Sync_n too soon causing the write sequence to end early and cancel. more in depth understanding of the datasheets of tools used could've saved hours.
+**Manual understanding** — As simple as it sounds, a lot of time was wasted debugging when the reason was I was lifting DAC_Sync_n too soon causing the write sequence to end early and cancel. more in depth understanding of the datasheets of tools used could've saved hours.
 
-**simple to complex** - In the commit history you can see the original design was a 4 tap design. It was only after that this proved to work that I moved on to the 16 and 64 tap design. Then again I improved it my making it constomizeable so that by changing a single parameter(N in the rollingAverageFilter.sv file), it can be whatever tap count is desireable by the user.
+**Simple to complex** — In the commit history you can see the original design was a 4 tap design. It was only after that this proved to work that I moved on to the 16 and 64 tap design. Then again I improved it my making it constomizeable so that by changing a single parameter(N in the rollingAverageFilter.sv file), it can be whatever tap count is desireable by the user.
 
-**testbenching** - In sim_1 its possible to see 4 testbenches despite the final product only using 1. This is due to as I went along I testbenched each module to make sure it works which gave confidence moving on that what I had done works properly. yet limitations in my methodology where also shown here, namely in the DAC as talked about in manual understanding. This highlights the need for more asseration based testing which is demonstrated in Top_lvl_tb.
+**Testbenching** — In sim_1 its possible to see 4 testbenches despite the final product only using 1. This is due to as I went along I testbenched each module to make sure it works which gave confidence moving on that what I had done works properly. yet limitations in my methodology where also shown here, namely in the DAC as talked about in manual understanding. This highlights the need for more asseration based testing which is demonstrated in Top_lvl_tb.
 ---
 
 ## Results
 
-![picture of oscilocope with a 22khz noisy signal using the 64 tap desing][images\22khz 64-tap.webp]
+![picture of oscilocope with a 22khz noisy signal using the 64 tap desing](images/22khz_64-tap.webp)
 
 The filter successfully attenuates high-frequency signal components in real time. With 64 taps the cutoff frequency is approximately **21.6 kHz**, providing meaningful attenuation of signals above that frequency while passing lower frequency content with minimal distortion.
 
