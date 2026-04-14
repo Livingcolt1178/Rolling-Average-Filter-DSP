@@ -4,7 +4,7 @@
 // Project Name: Rolling Average Filter DSP
 // Target:       Spartan-7
 // Description:  Top-level integration module. Wires together the ADC1173
-//               controller, 4-tap rolling average filter, and DAC7311
+//               controller, N-tap rolling average filter, and DAC7311
 //               controller into a complete ADC -> DSP -> DAC pipeline.
 //////////////////////////////////////////////////////////////////////////////////
 module top_lvl (
