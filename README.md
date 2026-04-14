@@ -164,7 +164,8 @@ The testbench uses **SystemVerilog Assertions (SVA)** to verify pipeline behavio
 
 **Simple to complex** — In the commit history you can see the original design was a 4 tap design. It was only after that this proved to work that I moved on to the 16 and 64 tap design. Then again I improved it my making it constomizeable so that by changing a single parameter(N in the rollingAverageFilter.sv file), it can be whatever tap count is desireable by the user.
 
-**Testbenching** — In sim_1 its possible to see 4 testbenches despite the final product only using 1. This is due to as I went along I testbenched each module to make sure it works which gave confidence moving on that what I had done works properly. yet limitations in my methodology where also shown here, namely in the DAC as talked about in manual understanding. This highlights the need for more asseration based testing which is demonstrated in Top_lvl_tb.
+**Testbenching** — In sim_1 its possible to see 4 testbenches despite the final product only using 1. This is because as I went module to module, I testbenched each module to make sure it works which gave confidence moving on that what I had done works properly. yet limitations in my methodology were also shown here, namely in the DAC as talked about in manual understanding. This highlights the need for more assertion based testing which is demonstrated in Top_lvl_tb.
+
 ---
 
 ## Results
