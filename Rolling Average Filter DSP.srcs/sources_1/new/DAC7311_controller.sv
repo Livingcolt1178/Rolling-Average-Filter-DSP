@@ -28,7 +28,7 @@ module DAC7311_Controller (
     assign DAC_start = data_valid && DAC_ready;
     assign DAC_clk = clk;
     
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             DAC_ready <= 1;     //Ready for data when reset
             data_reg <= 0;      //Clear data register on reset
@@ -55,6 +55,4 @@ module DAC7311_Controller (
             end
         end
     end
-
-
 endmodule

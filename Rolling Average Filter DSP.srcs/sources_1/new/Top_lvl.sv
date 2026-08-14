@@ -29,6 +29,7 @@ module top_lvl (
     logic sample_en;            //Enable signal for sampling, allows the ADC to take a sample every 16 cycles, for control over sampling when testing.
 
     logic [7:0] ADC_Dout;       //Data coming out of the ADC to the filter
+    logic ADC_valid;
 
     logic [11:0] filter_Dout;   //Data coming out of the filter to the DAC
     logic data_valid;           //signal to let the DAC know that the data coming in is valid
@@ -47,7 +48,8 @@ module top_lvl (
 
         .ADC_en_n(ADC_en_n),
         .ADC_clk(ADC_clk),
-        .ADC_Dout(ADC_Dout)
+        .ADC_Dout(ADC_Dout),
+        .ADC_valid(ADC_valid)
     );
 
     //instantiate Filter
@@ -56,6 +58,7 @@ module top_lvl (
         .rst_n(internal_rst_n),
 
         .filter_Din(ADC_Dout),
+        .ADC_valid(ADC_valid),
 
         .filter_Dout(filter_Dout),
         .filter_ready(rd_en),
