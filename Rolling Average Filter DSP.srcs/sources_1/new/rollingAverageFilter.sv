@@ -43,7 +43,7 @@ module rollingAverageFilter (
                         samples[i] <= samples[i-1];
                     end
                 end else begin
-                    samples[i] <= 0;
+                    samples[i] <= samples[i];
                 end
             end
         end

@@ -10,9 +10,11 @@
 
 ---
 
+> **Status: filter response not validated.** The pipeline runs on hardware, but a bug in the ADC handshake makes the 64-tap build behave as a 4-tap filter (~346 kHz cutoff instead of 21.6 kHz). Root cause is identified and documented in [Known Issues](#known-issues--current-status). Hardware retest is pending. The cutoff figures below are **design targets, not measurements**.
+
 ## Overview
 
-This project implements a complete **ADC → DSP → DAC signal processing pipeline** on a Xilinx Spartan-7 FPGA. A rolling average filter is used to attenuate high-frequency components of an analog input signal in real time. The design targets the Spartan Edge Accelerator Board and was fully verified through simulation and physical hardware testing.
+This project implements a complete **ADC → DSP → DAC signal processing pipeline** on a Xilinx Spartan-7 FPGA. A rolling average filter is used to attenuate high-frequency components of an analog input signal in real time. The design targets the Spartan Edge Accelerator Board. It runs end to end on hardware, but the measured filter response does **not** match the design target — see [Known Issues](#known-issues--current-status) before using these numbers.
 
 The pipeline captures analog samples via an onboard 8-bit ADC, processes them through a configurable N-tap rolling average filter, and reconstructs the filtered signal through an onboard 12-bit SPI DAC — all running at 50 MHz on a single clock domain.
 
@@ -61,7 +63,7 @@ A rolling average filter is a type of **finite impulse response (FIR) low-pass f
 y[n] = (1/N) × Σ x[n-k]  for k = 0 to N-1
 ```
 
-The cutoff frequency scales inversely with tap count:
+The cutoff frequency scales inversely with tap count. **These are design targets — the current build does not achieve them, see [Known Issues](#known-issues--current-status):**
 
 ```
 f_c = 0.443 × f_sample / N
@@ -86,6 +88,20 @@ sum  = Σ samples[i]        // up to 14 bits for 64-tap
 avg  = sum >> log2(N)      // divide by N
 Dout = avg << 4            // scale 8-bit average to 12-bit DAC range
 ```
+
+The `<< 4` is correct and necessary: the ADC's LSB is 3.3/2^8 = 12.89 mV and the DAC's is 3.3/2^12 = 0.806 mV, a ratio of 16, so an 8-bit code must be scaled by 16 to reproduce the same voltage.
+
+The problem is the order of operations. `(sum >> LOG2_N) << 4` truncates to 8 bits in the middle, and those bits do not come back on the left shift — so the average gets re-quantized onto whole ADC codes and the 12-bit DAC is driven in steps of 16. Averaging N dithered samples recovers about 0.5*log2(N) bits (3 bits at N=64), and this discards all of them. Worst-case error is 15 DAC codes, roughly 12 mV.
+
+Doing the same divide and scale in one step keeps them:
+
+```systemverilog
+logic [SUM_BITS+3:0] scaled;
+assign scaled      = {sum, 4'b0};                 // x16, the ADC/DAC LSB ratio
+assign filter_Dout = scaled[SUM_BITS+3 : LOG2_N]; // /N, all 12 bits kept
+```
+
+This is algebraically the same operation — it reduces to `sum >> 2` at N = 64 and `sum << 2` at N = 4 — and it stays correct for any N, which a hardcoded bit-slice would not. When the input carries no sub-LSB information the two forms produce identical output, so this is never worse, only sometimes better.
 
 ---
 
@@ -193,11 +209,69 @@ This confirms correct functional integration across all three major subsystems.
 
 ![picture of oscilocope with a 22khz noisy signal using the 64 tap desing](images/22khz_64-tap.webp)
 
-The filter successfully attenuates high-frequency signal components in real time. With 64 taps the cutoff frequency is approximately **21.6 kHz**, providing meaningful attenuation of signals above that frequency while passing lower frequency content with minimal distortion.
+**This section previously claimed the filter worked. It does not, and the correction is more useful than the original claim.**
 
-it should be noticed in the image that the yellow input is 870mVpp and the green output is visibly smaller, roughly ~600mVpp, which is ~69% of input ≈ 0.707× which is exactly -3dB, matching expected theoretical behavior.
+The image above was read as showing a −3 dB rolloff at the 22 kHz cutoff. It does not show that. Every measurement on the scope is on channel 1 — there is no `Pk-Pk(2)`, so the output amplitude was never actually recorded. The ~600 mVpp figure was estimated by eye from a trace sitting at a different vertical offset than the input, and it was wrong.
+
+What the photo actually shows is the output ripple being just as large as the input ripple, because the filter was not attenuating anything at that frequency. See [Known Issues](#known-issues--current-status) for the root cause.
 
 ---
+
+---
+
+## Known Issues & Current Status
+
+Found on 2026-08-15 after a reviewer pointed out that the filtered output looked as noisy as the input. It did. These are open; hardware retest is pending bench access.
+
+### 1. `ADC_valid` never deasserts — the filter runs 16× too fast (blocking)
+
+In `ADC1173_controller.sv`, `ADC_valid` is set on a FIFO read and never cleared:
+
+```systemverilog
+if(allow_read) begin
+    ADC_Dout  <= fifo[raddr];
+    raddr     <= raddr + 1;
+    ADC_valid <= 1;        // no else — latches high permanently
+end
+```
+
+It is a level, not a per-sample pulse. `rollingAverageFilter.sv` gates its shift register on that flag, so the window advances every 50 MHz clock while new samples only arrive every 16 cycles. Each sample is replicated 16 times, so a 64-tap window holds **4 distinct samples**.
+
+The 64-tap build therefore behaves as a 4-tap filter: a ~346 kHz cutoff, not 21.6 kHz. At the 22 kHz test tone that is |H| = 0.9988 — about 0.01 dB, or no attenuation at all.
+
+Fix: default `ADC_valid` low every cycle and raise it for one cycle on `allow_read`.
+
+### 2. Clearing the sample window when `ADC_valid` is low (blocking, coupled to #1)
+
+```systemverilog
+end else begin
+    samples[i] <= 0;    // wipes all N taps
+end
+```
+
+Currently dead code, because #1 pins `ADC_valid` high. **Fixing #1 without also removing this makes the design worse** — the window would be cleared on the 15 idle cycles between samples, leaving `filter_Dout = filter_Din / 4` with no averaging at all. The two must be fixed together. The correct behaviour is to hold state, not clear it.
+
+### 5. No reset synchronizer
+
+`internal_rst_n = locked && rst_n` is combinational from an async pushbutton and is used as an async reset (`negedge rst_n`) in every module. Recovery/removal timing is unconstrained, so reset release can go metastable. Should be async-assert / sync-deassert.
+
+### 6. Documentation and code disagree
+
+`rollingAverageFilter.sv`'s header claims "O(1) per cycle: one add, one subtract." The implementation is a 64-deep combinational adder chain recomputed every cycle. Either implement the running sum (`sum <= sum + filter_Din - samples[N-1]`) or fix the comment. The running sum is also what would make the "scales to ~2,000 taps" claim defensible.
+
+Minor: `data_valid` is permanently high after reset, so the DAC free-runs at 3.125 MHz rather than firing on new filter output. Same rate as the ADC but not phase-locked to it, so samples will occasionally be duplicated or dropped. Worth pulsing off `ADC_valid` once #1 is fixed.
+
+Note on clocking, since it reads oddly at first: the board oscillator is fixed at 100 MHz, so `Constraints.xdc` correctly declares a 10 ns period on `sys_clk`, and the clocking wizard divides that to the 50 MHz the design actually runs on. The comment above the constraint describes the internal clock rather than the pin.
+
+### What the verification missed
+
+Two methodology failures, which are the part worth keeping:
+
+**The testbench drove held constants.** A moving average of a constant returns that constant, so `filter_calculation_check` passes identically whether the filter works or is replaced by a wire. It proved the adder, not the filter. A swept-sine or multi-tone stimulus checked against a golden model would have caught this immediately.
+
+**The bench test was run at the worst possible frequency.** At the −3 dB point the expected change is only a 30% reduction in ripple — invisible on a scope photo with the two channels at different vertical offsets. The first null at `f_s/N` = 48.8 kHz is where a working filter shows near-total cancellation and a broken one obviously does not. Testing at the null first, then filling in the curve, is the right order.
+
+The planned retest is a single-tone sweep at 1, 5, 10, 21.6, 30, 40 and 48.8 kHz with `Pk-Pk` measured on **both** channels, plotted against the ideal sinc response.
 
 ## How To Build
 
@@ -225,6 +299,6 @@ git clone https://github.com/Livingcolt1178/Rolling-Average-Filter-DSP
 
 ## About
 
-This project was built to learn the full hardware design flow — from RTL architecture through timing closure to physical hardware verification. It covers FPGA design fundamentals including synchronous reset design, clock domain management, SPI protocol implementation, FIFO design, and constraint-driven timing closure in Vivado.
+This project was built to learn the full hardware design flow — from RTL architecture through timing closure to bring-up on real hardware, including the part where you find out your verification methodology was not good enough to catch a real bug. It covers FPGA design fundamentals including synchronous reset design, clock domain management, SPI protocol implementation, FIFO design, and constraint-driven timing closure in Vivado.
 
 **Georgia Tech · ECE · Computer Engineering · 2026**

@@ -87,6 +87,10 @@ module ADC1173_Controller(
                 ADC_Dout <= fifo[raddr];
                 raddr <= raddr + 1; 
                 ADC_valid <= 1;
+            end else begin
+                ADC_Dout <= 8'h00;
+                raddr <= raddr; 
+                ADC_valid <= 0;
             end
         end
     end : FIFO_Reading
