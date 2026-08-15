@@ -33,7 +33,7 @@ module rollingAverageFilter (
     genvar i;
     generate    //we need to generate each loop as a module.
         for(i = 0; i < N; i++) begin //to increase taps, increase the loop count for reset
-            always_ff @(posedge clk or negedge rst_n) begin
+            always_ff @(posedge clk) begin
                 if(!rst_n) begin
                         samples[i] <= 8'b0;            //reset the samples to 0 on reset
                 end else if(ADC_valid) begin
@@ -65,7 +65,7 @@ module rollingAverageFilter (
 
     assign avg = sum >> LOG2_N; //divide the sum by the log2 of the number of taps to get the average, I.E, right shift by 6 for 64 taps.
     
-    always_ff @( posedge clk or negedge rst_n) begin
+    always_ff @( posedge clk) begin
         if(!rst_n) begin
             filter_Dout <= 0; //reset the average to 0 on reset
             data_valid <= 0; //data is not valid on reset

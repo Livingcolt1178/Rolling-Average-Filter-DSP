@@ -30,7 +30,7 @@ module ADC1173_Controller(
 
     logic [3:0]strob_counter;
     logic sample_strobe;
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge clk) begin
         if (!rst_n) begin
             strob_counter <= 0;
         end else begin
@@ -64,7 +64,7 @@ module ADC1173_Controller(
     assign allow_write = sample_strobe && !fifo_full && sample_en;
 
     
-        always_ff @(posedge clk or negedge rst_n) begin : FIFO_Writing
+        always_ff @(posedge clk) begin : FIFO_Writing
             if(!rst_n) begin
                 waddr <= 0;
                 fifo  <= '{default: 8'h00};
@@ -77,7 +77,7 @@ module ADC1173_Controller(
         end : FIFO_Writing
     
 
-    always_ff @(posedge clk or negedge rst_n) begin : FIFO_Reading
+    always_ff @(posedge clk) begin : FIFO_Reading
         if(!rst_n) begin
             raddr <= 0;
             ADC_Dout <= 8'h00;
@@ -95,7 +95,7 @@ module ADC1173_Controller(
         end
     end : FIFO_Reading
 
-    always_ff @( posedge clk or negedge rst_n ) begin : FIFO_Counter
+    always_ff @( posedge clk) begin : FIFO_Counter
         if(!rst_n) begin
             count <= 0;
         end else begin
