@@ -89,20 +89,6 @@ avg  = sum >> log2(N)      // divide by N
 Dout = avg << 4            // scale 8-bit average to 12-bit DAC range
 ```
 
-The `<< 4` is correct and necessary: the ADC's LSB is 3.3/2^8 = 12.89 mV and the DAC's is 3.3/2^12 = 0.806 mV, a ratio of 16, so an 8-bit code must be scaled by 16 to reproduce the same voltage.
-
-The problem is the order of operations. `(sum >> LOG2_N) << 4` truncates to 8 bits in the middle, and those bits do not come back on the left shift — so the average gets re-quantized onto whole ADC codes and the 12-bit DAC is driven in steps of 16. Averaging N dithered samples recovers about 0.5*log2(N) bits (3 bits at N=64), and this discards all of them. Worst-case error is 15 DAC codes, roughly 12 mV.
-
-Doing the same divide and scale in one step keeps them:
-
-```systemverilog
-logic [SUM_BITS+3:0] scaled;
-assign scaled      = {sum, 4'b0};                 // x16, the ADC/DAC LSB ratio
-assign filter_Dout = scaled[SUM_BITS+3 : LOG2_N]; // /N, all 12 bits kept
-```
-
-This is algebraically the same operation — it reduces to `sum >> 2` at N = 64 and `sum << 2` at N = 4 — and it stays correct for any N, which a hardcoded bit-slice would not. When the input carries no sub-LSB information the two forms produce identical output, so this is never worse, only sometimes better.
-
 ---
 
 ## Repository Structure
@@ -250,6 +236,7 @@ end
 ```
 
 Currently dead code, because #1 pins `ADC_valid` high. **Fixing #1 without also removing this makes the design worse** — the window would be cleared on the 15 idle cycles between samples, leaving `filter_Dout = filter_Din / 4` with no averaging at all. The two must be fixed together. The correct behaviour is to hold state, not clear it.
+
 
 ### 5. No reset synchronizer
 
