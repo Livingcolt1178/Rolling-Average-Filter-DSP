@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="Top_lvl_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="Top_lvl_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="95,824,411 ps"></ZoomStartTime>
+      <ZoomEndTime time="95,824,414 ps"></ZoomEndTime>
+      <Cursor1Time time="95,824,412 ps"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="109"></NameColumnWidth>
+      <ValueColumnWidth column_width="90"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="19" />
+   <wvobject fp_name="/Top_lvl_tb/dut/sys_clk" type="logic">
+      <obj_property name="ElementShortName">sys_clk</obj_property>
+      <obj_property name="ObjectShortName">sys_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/DAC_clk" type="logic">
+      <obj_property name="ElementShortName">DAC_clk</obj_property>
+      <obj_property name="ObjectShortName">DAC_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/ADC_clk" type="logic">
+      <obj_property name="ElementShortName">ADC_clk</obj_property>
+      <obj_property name="ObjectShortName">ADC_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/internal_rst_n" type="logic">
+      <obj_property name="ElementShortName">internal_rst_n</obj_property>
+      <obj_property name="ObjectShortName">internal_rst_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/result" type="array">
+      <obj_property name="ElementShortName">result[11:0]</obj_property>
+      <obj_property name="ObjectShortName">result[11:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/dac_ctrl/DAC_Dout" type="logic">
+      <obj_property name="ElementShortName">DAC_Dout</obj_property>
+      <obj_property name="ObjectShortName">DAC_Dout</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/dac_ctrl/data_reg" type="array">
+      <obj_property name="ElementShortName">data_reg[14:0]</obj_property>
+      <obj_property name="ObjectShortName">data_reg[14:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/dac_ctrl/DAC_sync_n" type="logic">
+      <obj_property name="ElementShortName">DAC_sync_n</obj_property>
+      <obj_property name="ObjectShortName">DAC_sync_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/filter/filter_Dout" type="array">
+      <obj_property name="ElementShortName">filter_Dout[11:0]</obj_property>
+      <obj_property name="ObjectShortName">filter_Dout[11:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/filter/avg" type="array">
+      <obj_property name="ElementShortName">avg[7:0]</obj_property>
+      <obj_property name="ObjectShortName">avg[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/filter/sum" type="array">
+      <obj_property name="ElementShortName">sum[13:0]</obj_property>
+      <obj_property name="ObjectShortName">sum[13:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/filter/filter_Din" type="array">
+      <obj_property name="ElementShortName">filter_Din[7:0]</obj_property>
+      <obj_property name="ObjectShortName">filter_Din[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/adc_ctrl/ADC_Dout" type="array">
+      <obj_property name="ElementShortName">ADC_Dout[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ADC_Dout[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/adc_ctrl/fifo" type="array">
+      <obj_property name="ElementShortName">fifo[0:7][7:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo[0:7][7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/adc_ctrl/fifo_empty" type="logic">
+      <obj_property name="ElementShortName">fifo_empty</obj_property>
+      <obj_property name="ObjectShortName">fifo_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/adc_ctrl/sample_strobe" type="logic">
+      <obj_property name="ElementShortName">sample_strobe</obj_property>
+      <obj_property name="ObjectShortName">sample_strobe</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/adc_ctrl/ADC_en_n" type="logic">
+      <obj_property name="ElementShortName">ADC_en_n</obj_property>
+      <obj_property name="ObjectShortName">ADC_en_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/Top_lvl_tb/dut/adc_ctrl/ADC_Din" type="array">
+      <obj_property name="ElementShortName">ADC_Din[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ADC_Din[7:0]</obj_property>
+   </wvobject>
+</wave_config>
