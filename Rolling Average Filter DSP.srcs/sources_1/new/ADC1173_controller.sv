@@ -19,7 +19,8 @@ module ADC1173_Controller(
 
     output logic ADC_en_n,          //Enable signal for the ADC, Active low, allows sampling
     output logic ADC_clk,           //Clock signal for the ADC
-    output logic [7:0] ADC_Dout     //The Data leaving the ADC to the FPGA for filter
+    output logic [7:0] ADC_Dout,     //The Data leaving the ADC to the FPGA for filter
+    output logic ADC_valid
     );
 
     // --------------------------------------------------------
@@ -29,7 +30,7 @@ module ADC1173_Controller(
 
     logic [3:0]strob_counter;
     logic sample_strobe;
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge clk) begin
         if (!rst_n) begin
             strob_counter <= 0;
         end else begin
@@ -62,33 +63,39 @@ module ADC1173_Controller(
     assign allow_read = rd_en && !fifo_empty;
     assign allow_write = sample_strobe && !fifo_full && sample_en;
 
-    always_ff @(posedge clk or negedge rst_n) begin : FIFO_Writing
-        if(!rst_n) begin
-            waddr <= 0;
-            for (int i = 0; i < 8; i++)begin
-                fifo[i] <= 8'h00;
+    
+        always_ff @(posedge clk) begin : FIFO_Writing
+            if(!rst_n) begin
+                waddr <= 0;
+                fifo  <= '{default: 8'h00};
+            end else begin
+                if(allow_write) begin
+                    fifo[waddr] <= ADC_Din; //write the incoming data from the ADC to the FIFO at the current write address
+                    waddr       <= waddr + 1; 
+                end
             end
-        end else begin
-            if(allow_write) begin
-                fifo[waddr] <= ADC_Din; //write the incoming data from the ADC to the FIFO at the current write address
-                waddr <= waddr + 1; 
-            end
-        end
-    end : FIFO_Writing
+        end : FIFO_Writing
+    
 
-    always_ff @(posedge clk or negedge rst_n) begin : FIFO_Reading
+    always_ff @(posedge clk) begin : FIFO_Reading
         if(!rst_n) begin
             raddr <= 0;
             ADC_Dout <= 8'h00;
+            ADC_valid <= 0;
         end else begin 
             if(allow_read) begin
                 ADC_Dout <= fifo[raddr];
                 raddr <= raddr + 1; 
+                ADC_valid <= 1;
+            end else begin
+                ADC_Dout <= 8'h00;
+                raddr <= raddr; 
+                ADC_valid <= 0;
             end
         end
     end : FIFO_Reading
 
-    always_ff @( posedge clk or negedge rst_n ) begin : FIFO_Counter
+    always_ff @( posedge clk) begin : FIFO_Counter
         if(!rst_n) begin
             count <= 0;
         end else begin

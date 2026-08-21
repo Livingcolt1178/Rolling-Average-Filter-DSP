@@ -55,6 +55,4 @@ module DAC7311_Controller (
             end
         end
     end
-
-
 endmodule
