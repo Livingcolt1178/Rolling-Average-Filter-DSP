@@ -24,7 +24,7 @@ The pipeline captures analog samples via an onboard 8-bit ADC, processes them th
 
 - **Full RTL pipeline** — ADC capture → digital filtering → DAC reconstruction, end to end
 - **Configurable tap count** — 4, 8, 16, 32, or 64 taps by changing a single parameter
-- **Single clock domain** — all modules synchronous to 50 MHz PLL output, no CDC hazards
+- **Single clock domain inside the FPGA** — every module is synchronous to the 50 MHz PLL output. `ADC_clk` is a divided version of it driven out to the ADC pin, and nothing internal is clocked by it, so there is no domain crossing to synchronize
 - **PLL lock-gated reset** — `internal_rst_n = rst_n & locked` prevents X-state initialization before the clock is stable
 - **SPI DAC controller** — 16-bit MSB-first frame serializer with SYNC framing for DAC7311
 - **8-entry FIFO** — decouples ADC sampling rate from filter consumption rate
@@ -37,7 +37,7 @@ The pipeline captures analog samples via an onboard 8-bit ADC, processes them th
 
 The system implements a fully synchronous ADC → DSP → DAC signal processing pipeline operating on a single 50 MHz clock domain.
 
-The input signal is sampled by the onboard ADC and presented on ADC_Din[7:0], sourced from an external waveform generator. These samples are first captured by the ADC1173_Controller module, where they are written into an 8-entry FIFO buffer to decouple ADC sampling timing from downstream processing.
+The input signal is sampled by the onboard ADC and presented on ADC_Din[7:0], sourced from the oscilloscope's built-in waveform generator. These samples are first captured by the ADC1173_Controller module, where they are written into an 8-entry FIFO buffer to decouple ADC sampling timing from downstream processing.
 
 Buffered samples are then forwarded to the central DSP block, the rollingAverageFilter module, where an N-tap moving average is computed using a shift-register-based accumulator. This stage performs real-time low-pass filtering of the incoming signal.
 
@@ -114,7 +114,7 @@ The exact −3 dB point is 21,630.5 Hz, solved numerically since there is no clo
 
 ### Scaling Math
 
-The ADC produces 8-bit samples. The DAC expects 12-bit values. The filter preserves full-scale accuracy across both converters:
+The ADC produces 8-bit samples and the DAC expects 12-bit values, so the filter has to move between the two code spaces:
 
 ```
 sum  = Σ samples[i]        // up to 14 bits for 64-tap
@@ -153,8 +153,8 @@ Doing it in two steps does cost something, and it is listed under [Known Issues]
 | FPGA Board         | Spartan Edge Accelerator (XC7S15-1FTGB196C) | Xilinx Spartan-7, 12,800 logic cells |
 | ADC                | ADC1173                                     | 8-bit, parallel output, onboard      |
 | DAC                | DAC7311IDCKR                                | 12-bit, SPI interface, onboard       |
-| Oscilloscope       | Keysight DSOX3014A                          | 100 MHz, 4-channel                   |
-| Waveform Generator | Keysight 33500B                             | Used to generate test input signals  |
+| Oscilloscope       | Keysight InfiniiVision MSOX4034A            | 350 MHz, 4-channel, 5 GSa/s          |
+| Waveform Generator | The MSOX4034A's two built-in WaveGen outputs | Single tone for the sweep, both outputs summed through matched resistors for the two-tone check |
 
 ### Pin Assignments
 
@@ -163,7 +163,7 @@ Doing it in two steps does cost something, and it is listed under [Known Issues]
 | `sys_clk`      | H4                            | 100 MHz board oscillator           |
 | `rst_n`        | D14                           | Active-low reset (FPGA_RST button) |
 | `ADC_Din[7:0]` | H12/H11/C11/F12/E12/D12/J2/J3 | 8-bit parallel ADC data            |
-| `ADC_clk`      | C5                            | Forwarded 50 MHz clock to ADC      |
+| `ADC_clk`      | C5                            | 3.125 MHz clock to the ADC, 50 MHz divided by 16 |
 | `ADC_en_n`     | J4                            | Active-low ADC enable              |
 | `DAC_Dout`     | L1                            | SPI data to DAC                    |
 | `DAC_sync_n`   | N1                            | SPI SYNC frame signal              |
@@ -182,7 +182,25 @@ Doing it in two steps does cost something, and it is listed under [Known Issues]
 
 ## Simulation & Verification
 
-The testbench uses **SystemVerilog Assertions (SVA)** to verify pipeline behavior automatically:
+Verification is in two layers, and the order matters because the first layer is the one that failed.
+
+### Golden model (primary)
+
+A Python reference in `golden/`, written from the specification rather than from the RTL, driven with impulse, step up, step down, two-tone and dithered-DC stimulus. No held constants anywhere. It runs under Icarus in a few seconds and does not need Vivado:
+
+```bash
+cd golden
+python3 gen_vectors.py
+iverilog -g2012 -o sim "../Rolling Average Filter DSP.srcs/sources_1/new/rollingAverageFilter.sv" \
+    rollingAverageFilter_ref_tb.sv
+vvp sim
+```
+
+Read the size of the mismatch rather than the pass/fail line. Deltas of 15 or less are the output scaling described in [Known Issues](#known-issues--current-status); deltas of −63 were the window being wiped, which is a different problem entirely, and the console says FAIL either way.
+
+### Assertions (secondary, and they are not sufficient on their own)
+
+The testbench also uses **SystemVerilog Assertions** to check pipeline plumbing:
 
 | Assertion                  | What It Checks                                      |
 | -------------------------- | --------------------------------------------------- |
@@ -200,15 +218,9 @@ The testbench uses **SystemVerilog Assertions (SVA)** to verify pipeline behavio
 3. Click **Run Simulation → Run Behavioral Simulation**
 4. Verify no assertion failures in the Tcl console
 
-This waveform illustrates the end-to-end data flow through the system, starting from ADC acquisition and ending at DAC output.
+⚠️ **`filter_calculation_check` passed for months while the filter did not filter.** It was fed held constants, and a moving average of a constant returns that constant, so it cannot tell a working filter from a wire. It is kept here because the plumbing checks around it are still useful, but it is not evidence that the filter works. That evidence is the golden model above and the [measured sweep](#results).
 
-The progression can be observed from bottom to top:
-
-* ADC input samples are captured and written into the FIFO buffer
-* Data is processed by the rolling average filter (DSP stage)
-* The filtered output is serialized and transmitted to the DAC
-
-This confirms correct functional integration across all three major subsystems.
+The behavioural simulation shows data flowing end to end, from ADC capture into the FIFO, through the filter, and out through the DAC serializer. That confirms the three subsystems are wired together and talking. It does not confirm the frequency response, which is the distinction this project learned the hard way.
 
 ![Waveform](images/Waveform.png)
 
@@ -307,7 +319,7 @@ end
 
 It was a level, not a per-sample pulse. `rollingAverageFilter.sv` gates its shift register on that flag, so the window advanced every 50 MHz clock while new samples only arrived every 16 cycles. Each sample landed in the window 16 times, so a 64-tap window held **4 distinct samples**.
 
-The 64-tap build therefore behaved as a 4-tap filter, around 346 kHz instead of 21.6 kHz. At the 22 kHz test tone that works out to |H| = 0.9988, which is about 0.01 dB, so it was not attenuating anything at all.
+The 64-tap build therefore behaved as a 4-tap filter, around 346 kHz instead of 21.63 kHz. At the 22 kHz test tone that works out to |H| = 0.9988, which is about 0.01 dB, so it was not attenuating anything at all.
 
 Fixed by defaulting `ADC_valid` low every cycle and raising it for one cycle on `allow_read`.
 
