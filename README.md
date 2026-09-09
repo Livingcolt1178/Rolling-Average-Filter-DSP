@@ -230,6 +230,15 @@ This confirms correct functional integration across all three major subsystems.
 
 ![Measured vs ideal frequency response of the 64-tap filter](images/dsp-response.png)
 
+| | |
+|---|---|
+| ![At the 48.83 kHz null](images/bench-2026-09-08/cropped-null-48kHz83.jpg) | ![At 1 kHz in the passband](images/bench-2026-09-08/cropped-passband-1kHz.jpg) |
+| At the first null. 1.26 V in, 33 mV out, and Freq(2) cannot find an edge. | At 1 kHz, both channels 200 mV/div. 1.225 V in, 1.252 V out, with the output quantization staircase visible. |
+| ![1 kHz with 50% added noise](images/bench-2026-09-08/cropped-noise-1kHz-50pct.jpg) | ![Two tones summed into the ADC](images/bench-2026-09-08/cropped-twotone-48kHz83.jpg) |
+| 1 kHz with 50% added noise. 1.92 V ragged in, 1.32 V clean out. | Two tones summed into the ADC, 1 kHz carrier plus an interferer on the null. Only the carrier survives. |
+
+Every frame from the session, including the eight sweep points not shown here, is archived in [`images/bench-2026-09-08/`](images/bench-2026-09-08/) with an index.
+
 The sweep was taken on 2026-09-08 on a Keysight MSOX4034A using its built-in waveform generator, with a single 1.20 Vpp sine riding on a 1.65 V offset so the signal stays inside the ADC's 0 to 3.3 V window. Pk-Pk is measured on both channels and `|H|` is the ratio of the two, which matters more than it sounds like it should, because the ADC input loads the generator and the amplitude arriving at the pin is not the amplitude on the dial. Acquisition averaging was set to 16 and display persistence turned off, without which the peak-to-peak readings wander by tens of millivolts between acquisitions.
 
 | f | Vin (mV) | Vout (mV) | measured \|H\| | ideal \|H\| | measured dB | ideal dB |
@@ -241,7 +250,7 @@ The sweep was taken on 2026-09-08 on a Keysight MSOX4034A using its built-in wav
 | **21.63 kHz** | 1240 | 920 | **0.742** | **0.707** | **−2.59** | **−3.01** |
 | 30 kHz    | 1260 | 670  | 0.532     | 0.485 | −5.49  | −6.28  |
 | 40 kHz    | 1260 | 320  | 0.254     | 0.209 | −11.90 | −13.59 |
-| **48.83 kHz** | 1240 | 40 | **≤0.032** | **0.000** | **≤−29.8** | null |
+| **48.83 kHz** | 1260 | 33 | **≤0.026** | **0.000** | **≤−31.6** | null |
 | 60 kHz    | 1260 | 270  | 0.214     | 0.171 | −13.38 | −15.36 |
 | 80 kHz    | 1270 | 270  | 0.213     | 0.176 | −13.45 | −15.07 |
 | 100 kHz   | 1260 | 100  | ≤0.079    | 0.023 | ≤−22.0 | −32.62 |
@@ -254,7 +263,7 @@ The error grows as the attenuation grows, from 0.5% at 10 kHz to 21.5% at 40 kHz
 
 With the generator set to DC at 1.65 V, channel 1 read 80 mV at 500 mV/div and channel 2 read 40 mV at 200 mV/div. Two separate signal paths landing on the same noise level is not a coincidence, and a floor that scales with the vertical setting is the oscilloscope's own quantization rather than anything in the circuit. At 500 mV/div the scope's 8-bit vertical works out to about 15.6 mV per code, and a few codes of jitter is 70 to 80 mV, which is what both channels showed.
 
-So what I can say about the null is that the attenuation there is **at least 29.8 dB**, and the instrument cannot tell me how much further down it goes without zooming channel 2 in much further than I did. I would rather report it that way than pick a number the measurement does not actually support.
+So what I can say about the null is that the attenuation there is **at least 31.6 dB**, and the instrument cannot tell me how much further down it goes. At 500 mV/div the output read 70 mV, which is the scope floor exactly; zooming channel 2 to 200 mV/div dropped it to 33 mV, and it would keep dropping if I kept zooming. I would rather report it that way than pick a number the measurement does not actually support.
 
 ### Two-tone cross-check
 
@@ -263,9 +272,10 @@ A sweep is one experiment run eleven times, so I ran a different one as well. Tw
 | interferer | \|H\| from two-tone | \|H\| from the sweep | ideal |
 | ---------- | ---------------- | ----------------- | ----- |
 | 15 kHz     | 0.874            | 0.865             | 0.852 |
+| 20 kHz     | 0.806            | not taken         | 0.746 |
 | 30 kHz     | 0.532            | 0.532             | 0.485 |
 | 40 kHz     | 0.254            | 0.254             | 0.209 |
-| 48.83 kHz  | 0.063            | ≤0.032            | 0.000 |
+| 48.83 kHz  | 0.063            | ≤0.026            | 0.000 |
 | 50 kHz     | 0.095            | not taken         | 0.023 |
 
 At 30 kHz and 40 kHz the two methods agree to three decimal places. They share almost no failure modes, since one measures a single tone's amplitude and the other measures residual ripple on a carrier, so the agreement is a much stronger statement about the measurement than either run is on its own.
