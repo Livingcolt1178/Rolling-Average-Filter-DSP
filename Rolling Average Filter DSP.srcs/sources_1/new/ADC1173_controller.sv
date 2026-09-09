@@ -43,7 +43,7 @@ module ADC1173_Controller(
     end
     assign sample_strobe = (strob_counter == 4'd15);
 
-    assign ADC_clk = clk;
+    assign ADC_clk = strob_counter[3];
 
     // --------------------------------------------------------
     // Data Handling FIFO structure
